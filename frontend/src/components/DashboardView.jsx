@@ -8,7 +8,6 @@ function DashboardView({
   result,
   loading,
   error,
-  history,
   handleFileChange,
   handleDetect,
   handleClear,
@@ -21,16 +20,50 @@ function DashboardView({
     return "No detection";
   })();
 
+  const topLabelClassName =
+    topLabel === "fire"
+      ? "top-label-fire"
+      : topLabel === "smoke"
+        ? "top-label-smoke"
+        : "top-label-safe";
+
   const riskClassName = result?.risk_level
     ? `risk-${result.risk_level}`
     : "";
+
+  const getDetectionPalette = (className) => {
+    if (className === "fire") {
+      return {
+        border: "#ef4444",
+        background: "rgba(239, 68, 68, 0.92)",
+      };
+    }
+
+    if (className === "smoke") {
+      return {
+        border: "#f4c95d",
+        background: "rgba(244, 201, 93, 0.92)",
+      };
+    }
+
+    return {
+      border: "#38d68d",
+      background: "rgba(56, 214, 141, 0.92)",
+    };
+  };
+
+  const getDetectionPriority = (className) => {
+    if (className === "smoke") return 0;
+    if (className === "fire") return 1;
+    return 2;
+  };
 
   const imgRef = useRef(null);
 
   return (
     <div className="app">
       <header className="header">
-        <div>
+        <div className="header-copy">
           <h1>Bushfire Smoke Detection Dashboard</h1>
           <p>A CNN Based Bushfire Smoke Detection AI</p>
         </div>
@@ -89,57 +122,72 @@ function DashboardView({
         <section className="card">
           <h2>Image Preview</h2>
 
-          <div className="image-box" style={{position: "relative"}}>
+          <div className="image-box" style={{ position: "relative" }}>
             {previewUrl ? (
-                <>
-              <img
-                src={previewUrl}
-                alt="Preview"
-                ref={imgRef}
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "100%",
-                  objectFit: "contain",
-                  borderRadius: "12px",
-                }}
-              />
-            {result &&
-              imgRef.current &&
-              result.detections.map((det, index) => {
-                const [x1, y1, x2, y2] = det.bbox;
+              <>
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  ref={imgRef}
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    objectFit: "contain",
+                    borderRadius: "12px",
+                  }}
+                />
+                {result &&
+                  imgRef.current &&
+                  [...result.detections]
+                    .sort(
+                      (a, b) =>
+                        getDetectionPriority(a.class_name) -
+                        getDetectionPriority(b.class_name)
+                    )
+                    .map((det, index) => {
+                    const [x1, y1, x2, y2] = det.bbox;
+                    const scaleX = imgRef.current.clientWidth / result.image_width;
+                    const scaleY = imgRef.current.clientHeight / result.image_height;
+                    const offsetX = imgRef.current.offsetLeft;
+                    const offsetY = imgRef.current.offsetTop;
+                    const palette = getDetectionPalette(det.class_name);
 
-                const scaleX =
-                  imgRef.current.clientWidth / result.image_width;
-                const scaleY =
-                  imgRef.current.clientHeight / result.image_height;
-
-                return (
-                  <div
-                    key={index}
-                    style={{
-                      position: "absolute",
-                      left: x1 * scaleX,
-                      top: y1 * scaleY,
-                      width: (x2 - x1) * scaleX,
-                      height: (y2 - y1) * scaleY,
-                      border: "2px solid red",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    <span
-                      style={{
-                        background: "red",
-                        color: "white",
-                        fontSize: "12px",
-                        padding: "2px 4px",
-                      }}
-                    >
-                      {det.class_name} ({det.confidence})
-                    </span>
-                  </div>
-                );
-              })}
-          </>
+                    return (
+                      <div
+                        key={index}
+                        className="detection-box"
+                        style={{
+                          "--box-color": palette.border,
+                          "--box-delay": `${index * 90}ms`,
+                          position: "absolute",
+                          left: offsetX + x1 * scaleX,
+                          top: offsetY + y1 * scaleY,
+                          width: (x2 - x1) * scaleX,
+                          height: (y2 - y1) * scaleY,
+                          border: `2px solid ${palette.border}`,
+                          boxSizing: "border-box",
+                          borderRadius: "8px",
+                          boxShadow: `0 0 0 1px ${palette.border}33`,
+                        }}
+                      >
+                        <span
+                          className="detection-label"
+                          style={{
+                            background: palette.background,
+                            color: det.class_name === "smoke" ? "#111111" : "white",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            padding: "3px 6px",
+                            borderRadius: "6px 0 6px 0",
+                            display: "inline-block",
+                          }}
+                        >
+                          {det.class_name} ({det.confidence})
+                        </span>
+                      </div>
+                    );
+                  })}
+              </>
             ) : (
               <span>Image goes here</span>
             )}
@@ -156,7 +204,7 @@ function DashboardView({
 
           <div className="info-item">
             <span className="label">Top Label</span>
-            <span className="value smoke">{topLabel}</span>
+            <span className={`value ${topLabelClassName}`}>{topLabel}</span>
           </div>
 
           <div className="info-item">
@@ -182,28 +230,6 @@ function DashboardView({
           </div>
         </aside>
       </main>
-
-      <section className="card">
-        <h2>History</h2>
-        <div className="history-list">
-          {history.map((item, index) => (
-            <div className="history-row" key={`${item.filename}-${index}`}>
-              <span>{item.filename}</span>
-              <span>{item.label}</span>
-              <span>{item.risk}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {result && (
-        <section className="card" style={{ marginTop: "20px" }}>
-          <h2>Raw API Response</h2>
-          <pre style={{ whiteSpace: "pre-wrap", overflowX: "auto" }}>
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </section>
-      )}
     </div>
   );
 }
