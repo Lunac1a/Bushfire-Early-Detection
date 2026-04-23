@@ -58,3 +58,4 @@ data/
 
 /backend/app/models/
 /backend/temp_uploads/
+/backend/static/

@@ -52,6 +52,12 @@ function DashboardView({
     };
   };
 
+  const getDetectionPriority = (className) => {
+    if (className === "smoke") return 0;
+    if (className === "fire") return 1;
+    return 2;
+  };
+
   const imgRef = useRef(null);
 
   return (
@@ -132,7 +138,13 @@ function DashboardView({
                 />
                 {result &&
                   imgRef.current &&
-                  result.detections.map((det, index) => {
+                  [...result.detections]
+                    .sort(
+                      (a, b) =>
+                        getDetectionPriority(a.class_name) -
+                        getDetectionPriority(b.class_name)
+                    )
+                    .map((det, index) => {
                     const [x1, y1, x2, y2] = det.bbox;
                     const scaleX = imgRef.current.clientWidth / result.image_width;
                     const scaleY = imgRef.current.clientHeight / result.image_height;
@@ -143,7 +155,10 @@ function DashboardView({
                     return (
                       <div
                         key={index}
+                        className="detection-box"
                         style={{
+                          "--box-color": palette.border,
+                          "--box-delay": `${index * 90}ms`,
                           position: "absolute",
                           left: offsetX + x1 * scaleX,
                           top: offsetY + y1 * scaleY,
@@ -156,6 +171,7 @@ function DashboardView({
                         }}
                       >
                         <span
+                          className="detection-label"
                           style={{
                             background: palette.background,
                             color: det.class_name === "smoke" ? "#111111" : "white",
