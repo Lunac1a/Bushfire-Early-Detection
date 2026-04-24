@@ -1,10 +1,11 @@
-import os
 import uuid
+import json
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Form
 from pathlib import Path
 import shutil
 from PIL import Image
+import cv2
 
 from app.services.model_service import get_model
 from app.services.video_service import precess_video
@@ -18,6 +19,7 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR = BASE_DIR / "static"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
+
 def calculate_risk(smoke_count: int, fire_count: int, max_confidence: float) -> str:
     if fire_count >= 1:
         return "high"
@@ -26,6 +28,55 @@ def calculate_risk(smoke_count: int, fire_count: int, max_confidence: float) -> 
     if smoke_count >= 1:
         return "low"
     return "safe"
+
+
+def _media_type_from_suffix(file_path: Path) -> str:
+    suffix = file_path.suffix.lower()
+    if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+        return "image"
+    if suffix in {".mp4", ".mov", ".avi", ".mkv"}:
+        return "video"
+    return "unknown"
+
+
+def _metadata_path_for_output(file_path: Path) -> Path:
+    return file_path.with_suffix(f"{file_path.suffix}.json")
+
+
+def _save_output_metadata(file_path: Path, payload: dict):
+    metadata_path = _metadata_path_for_output(file_path)
+    metadata_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+
+
+@router.get("/recent_history")
+async def recent_history(limit: int = Query(5, ge=1, le=20)):
+    files = [
+        path for path in OUTPUT_DIR.iterdir()
+        if path.is_file() and path.suffix.lower() != ".json"
+    ]
+    files.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+
+    items = []
+    for path in files[:limit]:
+        stat = path.stat()
+        metadata = None
+        metadata_path = _metadata_path_for_output(path)
+        if metadata_path.exists():
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                metadata = None
+
+        items.append({
+            "filename": path.name,
+            "media_type": _media_type_from_suffix(path),
+            "url": f"/static/{path.name}",
+            "size_bytes": stat.st_size,
+            "updated_at": stat.st_mtime,
+            "result_data": metadata,
+        })
+
+    return {"items": items}
 
 @router.post("/predict")
 async def predict(
@@ -37,7 +88,10 @@ async def predict(
         raise HTTPException(status_code=400, detail="Only image files are allowed.")
 
     # Save files
-    file_path = UPLOAD_DIR / file.filename
+    input_filename = f"{uuid.uuid4()}_{file.filename}"
+    output_filename = f"{uuid.uuid4()}_result.jpg"
+    file_path = UPLOAD_DIR / input_filename
+    output_path = OUTPUT_DIR / output_filename
 
     with file_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -76,12 +130,15 @@ async def predict(
                 })
 
         risk_level = calculate_risk(smoke_count, fire_count, max_confidence)
-
-        return {
+        annotated_image = result.plot()
+        if not cv2.imwrite(str(output_path), annotated_image):
+            raise ValueError("Failed to save output image.")
+        response_payload = {
             "model_used": model,
             "filename": file.filename,
             "image_width": width,
             "image_height": height,
+            "output_image_url": f"/static/{output_filename}",
             "detections": detections,
             "risk_level": risk_level,
             "summary": {
@@ -90,6 +147,8 @@ async def predict(
                 "max_confidence": round(max_confidence, 4)
             }
         }
+        _save_output_metadata(output_path, response_payload)
+        return response_payload
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -132,12 +191,25 @@ async def predict_video(
             frame_skip=5
         )
 
-        return {
+        risk_level = calculate_risk(
+            smoke_count=stats["smoke_frames"],
+            fire_count=stats["fire_frames"],
+            max_confidence=stats["max_confidence"],
+        )
+        response_payload = {
             "message": "Video processed successfully.",
             "model_used": model,
             "output_video_url": f"/static/{output_filename}",
+            "risk_level": risk_level,
+            "summary": {
+                "smoke_count": stats["smoke_frames"],
+                "fire_count": stats["fire_frames"],
+                "max_confidence": stats["max_confidence"],
+            },
             **stats
         }
+        _save_output_metadata(output_path, response_payload)
+        return response_payload
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
