@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -8,10 +8,14 @@ from app.services.model_service import get_model_status
 
 app = FastAPI(title="Bushfire Detection API")
 
-os.makedirs("temp_uploads", exist_ok=True)
-os.makedirs("static", exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent.parent
+TEMP_UPLOAD_DIR = BASE_DIR / "temp_uploads"
+STATIC_DIR = BASE_DIR / "static"
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+TEMP_UPLOAD_DIR.mkdir(exist_ok=True)
+STATIC_DIR.mkdir(exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.add_middleware(
     CORSMiddleware,

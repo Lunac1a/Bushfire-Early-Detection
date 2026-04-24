@@ -7,6 +7,7 @@ function App() {
   const [previewUrl, setPreviewUrl] = useState("");
   const [model, setModel] = useState("v8s");
   const [result, setResult] = useState(null);
+  const [videoResult, setVideoResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState([]);
@@ -18,6 +19,7 @@ function App() {
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setResult(null);
+    setVideoResult(null);
     setError("");
   };
 
@@ -25,6 +27,7 @@ function App() {
     setSelectedFile(null);
     setPreviewUrl("");
     setResult(null);
+    setVideoResult(null);
     setError("");
   };
 
@@ -38,20 +41,30 @@ function App() {
 
   const handleDetect = async () => {
     if (!selectedFile) {
-      setError("Please upload an image first.");
+      setError("Please upload an image or video first.");
       return;
     }
-
-    const formData = new FormData();
-    formData.append("file", selectedFile);
 
     try {
       setLoading(true);
       setError("");
       setResult(null);
+      setVideoResult(null);
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const isVideo = selectedFile.type?.startsWith("video/");
+      const url = isVideo
+        ? "http://127.0.0.1:8080/predict_video"
+        : `http://127.0.0.1:8080/predict?model=${model}`;
+
+      if (isVideo) {
+        formData.append("model", model);
+      }
 
       const response = await fetch(
-        `http://127.0.0.1:8080/predict?model=${model}`,
+        url,
         {
           method: "POST",
           body: formData,
@@ -62,6 +75,19 @@ function App() {
 
       if (!response.ok) {
         throw new Error(data.detail || "Detection failed.");
+      }
+
+      if (isVideo) {
+        setVideoResult(data);
+
+        const historyItem = {
+          filename: selectedFile.name,
+          label: "video",
+          risk: "video result",
+        };
+
+        setHistory((prev) => [historyItem, ...prev].slice(0, 6));
+        return;
       }
 
       setResult(data);
@@ -88,6 +114,7 @@ function App() {
       model={model}
       setModel={setModel}
       result={result}
+      videoResult={videoResult}
       loading={loading}
       error={error}
       history={history}

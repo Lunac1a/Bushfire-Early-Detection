@@ -6,6 +6,7 @@ function DashboardView({
   model,
   setModel,
   result,
+  videoResult,
   loading,
   error,
   handleFileChange,
@@ -82,7 +83,7 @@ function DashboardView({
           <label className="upload-box">
             <input
               type="file"
-              accept="image/*"
+              accept="image/*, video/*"
               onChange={handleFileChange}
               style={{ display: "none" }}
             />
@@ -91,7 +92,7 @@ function DashboardView({
               {selectedFile ? (
                 <span>{selectedFile.name}</span>
               ) : (
-                <span>Click to upload image</span>
+                <span>Click to upload image / video</span>
               )}
             </div>
           </label>
@@ -120,76 +121,94 @@ function DashboardView({
         </aside>
 
         <section className="card">
-          <h2>Image Preview</h2>
+          <h2>Preview</h2>
 
           <div className="image-box" style={{ position: "relative" }}>
             {previewUrl ? (
-              <>
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  ref={imgRef}
+              selectedFile?.type?.startsWith("video/") ? (
+                <video
+                  key={videoResult ? videoResult.output_video_url : previewUrl}
+                  src={
+                    videoResult
+                      ? `http://127.0.0.1:8080${videoResult.output_video_url}`
+                      : previewUrl
+                  }
+                  controls
+                  preload="metadata"
                   style={{
                     maxWidth: "100%",
                     maxHeight: "100%",
-                    objectFit: "contain",
                     borderRadius: "12px",
                   }}
                 />
-                {result &&
-                  imgRef.current &&
-                  [...result.detections]
-                    .sort(
-                      (a, b) =>
-                        getDetectionPriority(a.class_name) -
-                        getDetectionPriority(b.class_name)
-                    )
-                    .map((det, index) => {
-                    const [x1, y1, x2, y2] = det.bbox;
-                    const scaleX = imgRef.current.clientWidth / result.image_width;
-                    const scaleY = imgRef.current.clientHeight / result.image_height;
-                    const offsetX = imgRef.current.offsetLeft;
-                    const offsetY = imgRef.current.offsetTop;
-                    const palette = getDetectionPalette(det.class_name);
+              ) : (
+                <>
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    ref={imgRef}
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      objectFit: "contain",
+                      borderRadius: "12px",
+                    }}
+                  />
+                  {result &&
+                    imgRef.current &&
+                    [...result.detections]
+                      .sort(
+                        (a, b) =>
+                          getDetectionPriority(a.class_name) -
+                          getDetectionPriority(b.class_name)
+                      )
+                      .map((det, index) => {
+                        const [x1, y1, x2, y2] = det.bbox;
+                        const scaleX = imgRef.current.clientWidth / result.image_width;
+                        const scaleY = imgRef.current.clientHeight / result.image_height;
+                        const offsetX = imgRef.current.offsetLeft;
+                        const offsetY = imgRef.current.offsetTop;
+                        const palette = getDetectionPalette(det.class_name);
 
-                    return (
-                      <div
-                        key={index}
-                        className="detection-box"
-                        style={{
-                          "--box-color": palette.border,
-                          "--box-delay": `${index * 90}ms`,
-                          position: "absolute",
-                          left: offsetX + x1 * scaleX,
-                          top: offsetY + y1 * scaleY,
-                          width: (x2 - x1) * scaleX,
-                          height: (y2 - y1) * scaleY,
-                          border: `2px solid ${palette.border}`,
-                          boxSizing: "border-box",
-                          borderRadius: "8px",
-                          boxShadow: `0 0 0 1px ${palette.border}33`,
-                        }}
-                      >
-                        <span
-                          className="detection-label"
-                          style={{
-                            background: palette.background,
-                            color: det.class_name === "smoke" ? "#111111" : "white",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            padding: "3px 6px",
-                            borderRadius: "6px 0 6px 0",
-                            display: "inline-block",
-                          }}
-                        >
-                          {det.class_name} ({det.confidence})
-                        </span>
-                      </div>
-                    );
-                  })}
-              </>
+                        return (
+                          <div
+                            key={index}
+                            className="detection-box"
+                            style={{
+                              "--box-color": palette.border,
+                              "--box-delay": `${index * 90}ms`,
+                              position: "absolute",
+                              left: offsetX + x1 * scaleX,
+                              top: offsetY + y1 * scaleY,
+                              width: (x2 - x1) * scaleX,
+                              height: (y2 - y1) * scaleY,
+                              border: `2px solid ${palette.border}`,
+                              boxSizing: "border-box",
+                              borderRadius: "8px",
+                              boxShadow: `0 0 0 1px ${palette.border}33`,
+                            }}
+                          >
+                            <span
+                              className="detection-label"
+                              style={{
+                                background: palette.background,
+                                color: det.class_name === "smoke" ? "#111111" : "white",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                padding: "3px 6px",
+                                borderRadius: "6px 0 6px 0",
+                                display: "inline-block",
+                              }}
+                            >
+                              {det.class_name} ({det.confidence})
+                            </span>
+                          </div>
+                        );
+                      })}
+                </>
+              )
             ) : (
-              <span>Image goes here</span>
+              <span>Image or video goes here</span>
             )}
           </div>
         </section>
@@ -219,7 +238,7 @@ function DashboardView({
 
           <div className="info-item">
             <span className="label">Max Confidence</span>
-            <span className="value">{result?.summary?.max_confidence ?? "-"}</span>
+            <span className="value">{videoResult?.max_confidence ?? result?.summary?.max_confidence ?? "-"}</span>
           </div>
 
           <div className="info-item">

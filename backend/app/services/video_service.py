@@ -17,8 +17,25 @@ def precess_video(
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    if fps <= 0:
+        fps = 25.0
+
+    codec_candidates = ("avc1", "H264", "mp4v")
+    writer = None
+    selected_codec = None
+
+    for codec in codec_candidates:
+        fourcc = cv2.VideoWriter_fourcc(*codec)
+        candidate = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+        if candidate.isOpened():
+            writer = candidate
+            selected_codec = codec
+            break
+        candidate.release()
+
+    if writer is None:
+        cap.release()
+        raise ValueError("Failed to create output video writer.")
 
     frame_index = 0
     detected_frames = 0
@@ -55,4 +72,5 @@ def precess_video(
         "processed_frames": frame_index,
         "detected_frames": detected_frames,
         "max_confidence": round(max_confidence, 4),
+        "video_codec": selected_codec,
     }

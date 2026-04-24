@@ -11,10 +11,11 @@ from app.services.video_service import precess_video
 
 router = APIRouter()
 
-UPLOAD_DIR = Path("temp_uploads")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+UPLOAD_DIR = BASE_DIR / "temp_uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-OUTPUT_DIR = Path("static")
+OUTPUT_DIR = BASE_DIR / "static"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 def calculate_risk(smoke_count: int, fire_count: int, max_confidence: float) -> str:
@@ -106,9 +107,7 @@ async def predict_video(
         file: UploadFile = File(...),
         model: str = Form("v8s")
 ):
-    allowed_extensions = (".mp4", ".mov", ".avi", ".mkv")
-
-    if not file.filename.lower().endswith(allowed_extensions):
+    if not file.content_type.startswith("video/"):
         raise HTTPException(status_code=400, detail="Unsupported video format.")
 
     input_filename = f"{uuid.uuid4()}_{file.filename}"
