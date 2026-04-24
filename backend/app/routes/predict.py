@@ -1,14 +1,21 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+import os
+import uuid
+
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Form
 from pathlib import Path
 import shutil
 from PIL import Image
 
 from app.services.model_service import get_model
+from app.services.video_service import precess_video
 
 router = APIRouter()
 
 UPLOAD_DIR = Path("temp_uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+OUTPUT_DIR = Path("static")
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 def calculate_risk(smoke_count: int, fire_count: int, max_confidence: float) -> str:
     if fire_count >= 1:
@@ -39,7 +46,7 @@ async def predict(
             width, height = image.size
 
         yolo_model = get_model(model)
-        results = yolo_model(str(file_path), conf=0.25)
+        results = yolo_model(str(file_path), conf=0.4)
         result = results[0]
 
         detections = []
@@ -93,3 +100,51 @@ async def predict(
                 file_path.unlink()
         except PermissionError:
             print(f"Warning: could not delete temp file {file_path}")
+
+@router.post("/predict_video")
+async def predict_video(
+        file: UploadFile = File(...),
+        model: str = Form("v8s")
+):
+    allowed_extensions = (".mp4", ".mov", ".avi", ".mkv")
+
+    if not file.filename.lower().endswith(allowed_extensions):
+        raise HTTPException(status_code=400, detail="Unsupported video format.")
+
+    input_filename = f"{uuid.uuid4()}_{file.filename}"
+    output_filename = f"{uuid.uuid4()}_result.mp4"
+
+    input_path = UPLOAD_DIR / input_filename
+    output_path = OUTPUT_DIR / output_filename
+
+    try:
+        with input_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        yolo_model = get_model(model)
+
+        if isinstance(yolo_model, list):
+            yolo_model = yolo_model[0]
+
+        stats = precess_video(
+            input_path=str(input_path),
+            output_path=str(output_path),
+            model=yolo_model,
+            frame_skip=5
+        )
+
+        return {
+            "message": "Video processed successfully.",
+            "model_used": model,
+            "output_video_url": f"/static/{output_filename}",
+            **stats
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        try:
+            if input_path.exists():
+                input_path.unlink()
+        except PermissionError:
+            print(f"Warning: could not delete temp video {input_path}")
