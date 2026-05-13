@@ -5,12 +5,14 @@ BASE_PATH = Path(__file__).resolve().parent.parent / "models"
 
 MODEL_PATHS = {
     "v8n": BASE_PATH / "yolov8n.pt",
-    "v8s": BASE_PATH / "yolov8s.pt"
+    "v8s": BASE_PATH / "yolov8s.pt",
+    "transformer": BASE_PATH / "transformer.pt"
 }
 
 MODELS = {
     "v8n": YOLO(str(MODEL_PATHS["v8n"])),
     "v8s": YOLO(str(MODEL_PATHS["v8s"])),
+    "transformer": YOLO(str(MODEL_PATHS["transformer"])),
 }
 
 def get_model_status():

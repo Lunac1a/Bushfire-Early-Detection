@@ -93,6 +93,7 @@ function DashboardView({
           <select value={model} onChange={(e) => setModel(e.target.value)}>
             <option value="v8n">YOLOv8n</option>
             <option value="v8s">YOLOv8s</option>
+            <option value="transformer">Transformer</option>
           </select>
 
           <label className="upload-box">
