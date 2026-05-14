@@ -1,13 +1,12 @@
 import cv2
-from fastapi import Query
 
 from app.services.model_service import get_model
 
 
-def precess_video(
+def process_video(
         input_path: str,
         output_path: str,
-        model: str = Query("v8s"),
+        model: str = "v8s",
         frame_skip: int = 5
 ):
     yolo_model = get_model(model)
@@ -37,7 +36,7 @@ def precess_video(
 
             if results and len(results) > 0:
                 result = results[0]
-                boxes = results.boxes
+                boxes = result.boxes
 
                 if boxes is not None and len(boxes) > 0:
                     annotated_frame = result.plot()

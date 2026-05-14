@@ -1,5 +1,3 @@
-import { useRef } from "react";
-
 function DashboardView({
   selectedFile,
   previewUrl,
@@ -58,7 +56,18 @@ function DashboardView({
     return 2;
   };
 
-  const imgRef = useRef(null);
+  const getSafePreviewUrl = (urlValue) => {
+    if (!urlValue) return "";
+
+    try {
+      const parsed = new URL(urlValue, window.location.origin);
+      return parsed.protocol === "blob:" ? parsed.href : "";
+    } catch {
+      return "";
+    }
+  };
+
+  const safePreviewUrl = getSafePreviewUrl(previewUrl);
 
   return (
     <div className="app">
@@ -125,19 +134,21 @@ function DashboardView({
           <div className="image-box" style={{ position: "relative" }}>
             {previewUrl ? (
               <>
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  ref={imgRef}
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "100%",
-                    objectFit: "contain",
-                    borderRadius: "12px",
-                  }}
-                />
-                {result &&
-                  imgRef.current &&
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <img
+                    src={safePreviewUrl}
+                    alt="Preview"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      objectFit: "contain",
+                      borderRadius: "12px",
+                      display: "block",
+                    }}
+                  />
+                  {result &&
+                    result.image_width &&
+                    result.image_height &&
                   [...result.detections]
                     .sort(
                       (a, b) =>
@@ -146,10 +157,6 @@ function DashboardView({
                     )
                     .map((det, index) => {
                     const [x1, y1, x2, y2] = det.bbox;
-                    const scaleX = imgRef.current.clientWidth / result.image_width;
-                    const scaleY = imgRef.current.clientHeight / result.image_height;
-                    const offsetX = imgRef.current.offsetLeft;
-                    const offsetY = imgRef.current.offsetTop;
                     const palette = getDetectionPalette(det.class_name);
 
                     return (
@@ -160,10 +167,10 @@ function DashboardView({
                           "--box-color": palette.border,
                           "--box-delay": `${index * 90}ms`,
                           position: "absolute",
-                          left: offsetX + x1 * scaleX,
-                          top: offsetY + y1 * scaleY,
-                          width: (x2 - x1) * scaleX,
-                          height: (y2 - y1) * scaleY,
+                          left: `${(x1 / result.image_width) * 100}%`,
+                          top: `${(y1 / result.image_height) * 100}%`,
+                          width: `${((x2 - x1) / result.image_width) * 100}%`,
+                          height: `${((y2 - y1) / result.image_height) * 100}%`,
                           border: `2px solid ${palette.border}`,
                           boxSizing: "border-box",
                           borderRadius: "8px",
@@ -187,6 +194,7 @@ function DashboardView({
                       </div>
                     );
                   })}
+                </div>
               </>
             ) : (
               <span>Image goes here</span>

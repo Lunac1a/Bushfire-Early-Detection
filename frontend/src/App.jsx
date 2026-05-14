@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import DashboardView from "./components/DashboardView.jsx";
 
@@ -9,11 +9,14 @@ function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [history, setHistory] = useState([]);
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
 
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
@@ -22,19 +25,22 @@ function App() {
   };
 
   const handleClear = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setSelectedFile(null);
     setPreviewUrl("");
     setResult(null);
     setError("");
   };
 
-  const getPrimaryLabel = (data) => {
-    if (!data?.summary) return "No threat";
-
-    if (data.summary.fire_count > 0) return "fire";
-    if (data.summary.smoke_count > 0) return "smoke";
-    return "No threat";
-  };
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleDetect = async () => {
     if (!selectedFile) {
@@ -66,13 +72,6 @@ function App() {
 
       setResult(data);
 
-      const historyItem = {
-        filename: data.filename,
-        label: getPrimaryLabel(data),
-        risk: data.risk_level || "safe",
-      };
-
-      setHistory((prev) => [historyItem, ...prev].slice(0, 6));
     } catch (err) {
       console.error("Detect error:", err);
       setError(err.message || "Something went wrong.");
@@ -90,7 +89,6 @@ function App() {
       result={result}
       loading={loading}
       error={error}
-      history={history}
       handleFileChange={handleFileChange}
       handleDetect={handleDetect}
       handleClear={handleClear}
