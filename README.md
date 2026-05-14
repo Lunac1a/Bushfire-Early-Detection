@@ -106,10 +106,7 @@ yolo detect train data=data.yaml model=yolov8n.pt epochs=50
 
 ## Future Improvements
 
-- Real-time video detection
 - WebSocket live updates
-- Better UI/UX
-- Risk scoring system
 - Model optimization
 
 ---
