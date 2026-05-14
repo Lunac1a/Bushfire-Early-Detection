@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import DashboardView from "./components/DashboardView.jsx";
 
@@ -14,6 +14,10 @@ function App() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setResult(null);
@@ -21,11 +25,22 @@ function App() {
   };
 
   const handleClear = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setSelectedFile(null);
     setPreviewUrl("");
     setResult(null);
     setError("");
   };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleDetect = async () => {
     if (!selectedFile) {

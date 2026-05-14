@@ -56,7 +56,18 @@ function DashboardView({
     return 2;
   };
 
-  const safePreviewUrl = previewUrl && previewUrl.startsWith("blob:") ? previewUrl : "";
+  const getSafePreviewUrl = (urlValue) => {
+    if (!urlValue) return "";
+
+    try {
+      const parsed = new URL(urlValue, window.location.origin);
+      return parsed.protocol === "blob:" ? parsed.href : "";
+    } catch {
+      return "";
+    }
+  };
+
+  const safePreviewUrl = getSafePreviewUrl(previewUrl);
 
   return (
     <div className="app">

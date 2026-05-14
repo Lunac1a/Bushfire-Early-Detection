@@ -1,5 +1,4 @@
 import cv2
-from fastapi import Query
 
 from app.services.model_service import get_model
 
@@ -7,7 +6,7 @@ from app.services.model_service import get_model
 def process_video(
         input_path: str,
         output_path: str,
-        model: str = Query("v8s"),
+        model: str = "v8s",
         frame_skip: int = 5
 ):
     yolo_model = get_model(model)
