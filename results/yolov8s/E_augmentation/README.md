@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-This experiment studies how different data augmentation strategies affect the generalization ability and detection stability of the YOLOv8s wildfire detection model.
+This experiment studies how different data augmentation strategies affect the performance and generalization ability of the YOLOv8s wildfire detection model.
 
 Unlike the previous A/B/C/D experiments, the E group focuses more on:
 
@@ -12,7 +12,7 @@ Unlike the previous A/B/C/D experiments, the E group focuses more on:
 - Complex background robustness
 - Real-world deployment adaptability
 
-Wildfire smoke is a challenging detection target because it often has:
+Wildfire smoke is a difficult detection target because it often has:
 
 - Blurry boundaries
 - Weak texture features
@@ -20,7 +20,7 @@ Wildfire smoke is a challenging detection target because it often has:
 - Semi-transparent appearance
 - Strong similarity to clouds and fog
 
-Therefore, this experiment investigates whether different augmentation strategies can improve the model’s robustness in complex wildfire monitoring scenarios.
+Therefore, this experiment investigates whether different augmentation strategies can improve wildfire smoke detection performance.
 
 ---
 
@@ -44,7 +44,7 @@ Therefore, this experiment investigates whether different augmentation strategie
 
 | Experiment | Strategy |
 |---|---|
-| E1 | Default Augmentation (Baseline) |
+| E1 | Default Augmentation |
 | E2 | Strong Augmentation |
 | E3 | Reduced Mosaic Strategy |
 
@@ -54,9 +54,9 @@ Therefore, this experiment investigates whether different augmentation strategie
 
 ### E1 — Default Augmentation
 
-E1 reuses the current best baseline configuration without additional retraining.
+E1 uses the default YOLOv8 augmentation pipeline.
 
-This configuration uses the default YOLOv8 augmentation pipeline, including:
+The default augmentation strategy includes:
 
 - Mosaic augmentation
 - HSV color augmentation
@@ -64,7 +64,7 @@ This configuration uses the default YOLOv8 augmentation pipeline, including:
 - Random flipping
 - Random translation
 
-The purpose of E1 is to serve as the reference baseline for later augmentation comparisons.
+The purpose of E1 is to serve as the baseline reference for later augmentation comparisons.
 
 ---
 
@@ -91,19 +91,19 @@ The goal of E2 is to improve model generalization under difficult wildfire monit
 
 The stronger augmentation simulates:
 
-- Different lighting conditions
+- Lighting variation
 - Weather changes
 - Camera movement
 - Distant smoke targets
-- Complex backgrounds
+- Complex wildfire scenes
 
 However, stronger augmentation may also introduce:
 
 - Texture distortion
-- More aggressive transformations
-- Harder optimization during training
+- More difficult optimization
+- Unrealistic smoke structures
 
-This is especially important for smoke detection because smoke is a soft-texture object with unclear boundaries.
+This is especially important for smoke detection because smoke has soft texture and unclear boundaries.
 
 ---
 
@@ -125,7 +125,7 @@ E3 reduces the intensity of Mosaic augmentation.
 
 ### Design Purpose
 
-Unlike rigid objects such as cars or people, wildfire smoke is highly deformable and semi-transparent.
+Unlike rigid objects such as vehicles or humans, wildfire smoke is highly deformable and semi-transparent.
 
 Heavy Mosaic augmentation may:
 
@@ -136,7 +136,7 @@ Heavy Mosaic augmentation may:
 
 Therefore, E3 reduces Mosaic intensity while keeping moderate augmentation ability.
 
-The purpose is to help the model learn more realistic smoke texture and boundary features.
+The purpose is to preserve more realistic smoke texture information during training.
 
 ---
 
@@ -144,9 +144,9 @@ The purpose is to help the model learn more realistic smoke texture and boundary
 
 | Experiment | Precision | Recall | mAP50 | mAP50-95 |
 |---|---|---|---|---|
-| E1 (Default Aug) | 0.786 | 0.713 | 0.782 | 0.451 |
-| E2 (Strong Aug) | 0.770 | 0.739 | 0.786 | 0.456 |
-| E3 (Reduced Mosaic) | 0.792 | 0.726 | 0.788 | 0.458 |
+| E1 (Default Aug) | 0.789 | 0.724 | 0.789 | 0.457 |
+| E2 (Strong Aug) | 0.771 | 0.739 | 0.787 | 0.456 |
+| E3 (Reduced Mosaic) | 0.786 | 0.713 | 0.782 | 0.451 |
 
 ---
 
@@ -172,31 +172,27 @@ The results indicate that all augmentation strategies were trainable and did not
 
 E2 achieved the highest Recall among all augmentation experiments.
 
-This suggests that stronger augmentation improved the model’s ability to discover difficult wildfire smoke targets.
+This suggests that stronger augmentation improved the model’s sensitivity to difficult wildfire smoke targets.
 
 Possible improvements include:
 
 - Better distant smoke detection
-- Stronger robustness under lighting variation
-- Improved adaptability to complex scenes
+- Stronger adaptability to lighting variation
+- Improved robustness under complex scenes
 
 However, Precision slightly decreased.
 
-This indicates that the model became more sensitive and produced more aggressive predictions.
+This indicates that the model became more aggressive and produced more unstable predictions.
 
 ---
 
 ### E3 — Reduced Mosaic Strategy
 
-E3 achieved a better balance between Precision and Recall.
+E3 maintained relatively stable performance but did not outperform the default augmentation strategy.
 
-Compared with E2:
+Although reducing Mosaic intensity helped preserve smoke texture continuity, the improvement was limited on the current dataset.
 
-- Precision increased
-- Smoke classification stability improved
-- mAP50-95 achieved the best result
-
-This suggests that reducing Mosaic intensity may be more suitable for wildfire smoke detection.
+This suggests that the default YOLOv8 augmentation pipeline is already suitable for the wildfire smoke dataset.
 
 ---
 
@@ -206,15 +202,15 @@ This suggests that reducing Mosaic intensity may be more suitable for wildfire s
 
 | Experiment | Smoke Accuracy |
 |---|---|
-| E1 | 0.84 |
+| E1 | 0.85 |
 | E2 | 0.83 |
-| E3 | 0.85 |
+| E3 | 0.84 |
 
-E3 achieved the best smoke detection stability.
+E1 achieved the best smoke classification stability.
 
-This result supports the hypothesis that excessive Mosaic augmentation may damage smoke texture features.
+E2 slightly reduced smoke detection accuracy, likely because aggressive augmentation distorted smoke texture features.
 
-Reducing Mosaic intensity allows the model to learn more realistic smoke structures.
+E3 maintained stable smoke detection performance after reducing Mosaic intensity.
 
 ---
 
@@ -222,77 +218,78 @@ Reducing Mosaic intensity allows the model to learn more realistic smoke structu
 
 | Experiment | Fire Accuracy |
 |---|---|
-| E1 | 0.71 |
+| E1 | 0.73 |
 | E2 | 0.73 |
-| E3 | 0.73 |
+| E3 | 0.71 |
 
-Both E2 and E3 improved fire detection performance.
+E1 and E2 achieved similar fire detection performance.
 
-This indicates that augmentation helped improve model generalization for fire-related patterns.
+E3 showed a small decrease in fire classification accuracy.
 
 ---
 
 ### Background Predictions
 
-E2 showed slightly more aggressive background predictions.
+E2 produced slightly more aggressive background predictions.
 
-This is consistent with its higher Recall performance.
+This behavior is consistent with its higher Recall performance.
 
-Meanwhile, E3 maintained stronger smoke classification stability while keeping background prediction behavior relatively clean.
+The stronger augmentation increased model sensitivity, but also introduced slightly more unstable predictions.
 
 ---
 
 ## 9. Discussion
 
-The E group experiments demonstrate that augmentation strategy has a clear impact on wildfire smoke detection behavior.
+The E group experiments demonstrate that augmentation strategy has a clear influence on wildfire smoke detection behavior.
 
 Key findings include:
 
-- Strong augmentation improves Recall and generalization ability
-- Excessive augmentation may slightly reduce Precision
-- Wildfire smoke may not benefit from overly aggressive Mosaic augmentation
-- Reduced Mosaic intensity improves smoke texture learning and detection stability
+- Strong augmentation improved Recall slightly
+- Excessive augmentation introduced more unstable smoke predictions
+- Reduced Mosaic augmentation maintained stable performance
+- The default YOLOv8 augmentation pipeline achieved the best overall balance
 
-Compared with rigid object detection tasks, wildfire smoke detection requires more careful augmentation design because smoke is:
+The results also suggest that the wildfire smoke dataset may already contain sufficient environmental diversity, reducing the benefit of stronger augmentation strategies.
+
+Compared with rigid object detection tasks, wildfire smoke detection requires careful augmentation design because smoke is:
 
 - Semi-transparent
 - Shape-changing
 - Texture-sensitive
-- Easily distorted by image stitching operations
+- Easily affected by image transformations
 
-Among all augmentation strategies, E3 achieved the best overall balance between:
+---
+
+## 10. Final Conclusion
+
+The E group experiments confirm that augmentation strategy affects wildfire smoke detection performance.
+
+### Main Conclusions
+
+- E2 slightly improved Recall and generalization ability
+- E2 also introduced more unstable smoke predictions
+- E3 maintained stable smoke texture learning
+- E1 achieved the best overall performance balance
+
+The results suggest that:
+
+> More aggressive augmentation is not always better for wildfire smoke detection.
+
+Among all augmentation strategies, the default YOLOv8 augmentation pipeline achieved the best balance between:
 
 - Precision
 - Recall
 - mAP performance
 - Smoke classification stability
 
----
-
-## 10. Final Conclusion
-
-The E group experiments confirm that augmentation strategy plays an important role in wildfire smoke detection performance.
-
-### Main Conclusions
-
-- E2 improved Recall and generalization ability through stronger augmentation
-- E3 achieved the best overall performance by reducing Mosaic intensity
-- Reduced Mosaic augmentation appears to be more suitable for smoke-style targets
-
-The results suggest that:
-
-> Stronger augmentation is not always better for wildfire smoke detection.
-
-Instead, carefully controlled augmentation may produce more stable and realistic feature learning.
-
-Based on the E group results, the project will continue using the E3 augmentation strategy for later optimization experiments.
+Therefore, the project will continue using the default YOLOv8 augmentation strategy for later experiments.
 
 ### Current Best Augmentation Configuration
 
-- mosaic = 0.5
-- close_mosaic = 20
-- hsv_h = 0.015
-- hsv_s = 0.7
-- hsv_v = 0.4
-- scale = 0.5
-- fliplr = 0.5
+Default YOLOv8 augmentation settings:
+
+- mosaic = default
+- hsv augmentation = default
+- scale = default
+- flip = default
+- translation = default
