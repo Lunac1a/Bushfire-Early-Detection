@@ -57,7 +57,7 @@ async def predict(
                 if class_name.lower() == "smoke":
                     smoke_count += 1
                 elif class_name.lower() == "fire":
-                    fire_count +=1
+                    fire_count += 1
 
                 max_confidence = max(max_confidence, conf)
 
