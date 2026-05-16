@@ -61,5 +61,5 @@ data/
 
 training/data_preparing/data/wildfire/data/
 *.cache
-yolov8s.pt
+
 /backend/static/
